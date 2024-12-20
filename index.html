@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+</head>
+<body>
+    <h1>Multi-File Upload for RAG Chatbot</h1>
+    <h4>参照したいpdfファイルを下のボックスにドラッグしてください。</h4>    
+
+    <div class="upload-container">
+        <!-- 論文・技術文章 -->
+        <div class="upload-section">
+            <div class="category-label">
+                <span class="icon">📚</span>
+                <span class="label-text">論文・技術文章</span>
+                <p class="category-description">学術論文や技術文書、マニュアル 専門的な文章</p>
+            </div>
+            <div class="upload-area" id="upload-area-technical">
+                <div class="upload-content">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drag & Drop your PDF here or click to upload</div>
+                </div>
+                <input type="file" id="file-input-technical" style="display: none;" accept=".pdf">
+            </div>
+        </div>
+
+        <!-- 物語・小説 -->
+        <div class="upload-section">
+            <div class="category-label">
+                <span class="icon">📖</span>
+                <span class="label-text">物語・小説</span>
+                <p class="category-description">小説、物語、エッセイなどの文学作品</p>
+            </div>
+            <div class="upload-area" id="upload-area-story">
+                <div class="upload-content">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drag & Drop your PDF here or click to upload</div>
+                </div>
+                <input type="file" id="file-input-story" style="display: none;" accept=".pdf">
+            </div>
+        </div>
+
+        <!-- 短文章・箇条書き文 -->
+        <div class="upload-section">
+            <div class="category-label">
+                <span class="icon">📝</span>
+                <span class="label-text">短文章・箇条書き文</span>
+                <p class="category-description">メモ、箇条書き、短い文章など</p>
+            </div>
+            <div class="upload-area" id="upload-area-short">
+                <div class="upload-content">
+                    <div class="upload-icon">📄</div>
+                    <div class="upload-text">Drag & Drop your PDF here or click to upload</div>
+                </div>
+                <input type="file" id="file-input-short" style="display: none;" accept=".pdf">
+            </div>
+        </div>
+    </div>
+
+    <button class="chatbot-btn" id="go-to-chat" style="display: none;">Go to RAG Chatbot</button>
+
+    <!-- アップロードされたファイルパスを保持 -->
+    <input type="hidden" id="file-path">
+
+    <div id="upload-status"></div>
+
+    <script>
+        const uploadAreas = {
+            technical: document.getElementById('upload-area-technical'),
+            story: document.getElementById('upload-area-story'),
+            short: document.getElementById('upload-area-short')
+        };
+        const fileInputs = {
+            technical: document.getElementById('file-input-technical'),
+            story: document.getElementById('file-input-story'),
+            short: document.getElementById('file-input-short')
+        };
+        const goToChatBtn = document.getElementById('go-to-chat');
+        const uploadStatus = document.getElementById('upload-status');
+        const filePathInput = document.getElementById('file-path');
+
+        // 各アップロードエリアにイベントリスナーを設定
+        Object.entries(uploadAreas).forEach(([type, area]) => {
+            area.addEventListener('click', () => fileInputs[type].click());
+        });
+
+        Object.entries(fileInputs).forEach(([type, input]) => {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                handleFileUpload(file, type);
+            });
+        });
+
+        function handleFileUpload(file, type) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('type', type);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    uploadStatus.textContent = `Error: ${data.error}`;
+                } else {
+                    uploadStatus.textContent = `File uploaded successfully: ${data.file_path}`;
+                    filePathInput.value = data.file_path;
+                    goToChatBtn.style.display = 'inline-block';
+                }
+            })
+            .catch(err => {
+                uploadStatus.textContent = `Error uploading file: ${err}`;
+            });
+        }
+
+        goToChatBtn.addEventListener('click', () => {
+            const filePath = filePathInput.value;
+            if (!filePath) {
+                alert('ファイルパスが指定されていません。');
+                return;
+            }
+            window.location.href = `/RAG?file_path=${encodeURIComponent(filePath)}`;
+        });
+    </script>
+</body>
+</html>
